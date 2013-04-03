@@ -117,10 +117,13 @@ def fetch_from_munin(munin_client):
     messages = []
     for item in list_result:
         values = munin_client.fetch(item)
-        for key in values:
-            message = "%s.%s %s %d\n" % (item, key, values[key], timestamp)
-            logging.debug('fetched from munin: %s', message)
-            messages.append(message)
+        try:
+            for key in values:
+                message = "%s.%s %s %d\n" % (item, key, values[key], timestamp)
+                logging.debug('fetched from munin: %s', message)
+                messages.append(message)
+        except:
+            logging.warning('no data for: %s', values)
 
     return messages
 
