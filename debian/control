@@ -11,6 +11,7 @@ Architecture: all
 Depends: ${misc:Depends}, ${python:Depends}
 XB-Python-Version: ${python:Versions}
 Provides: ${python:Provides}
+Pre-Depends: munin-node
 Description: Munin-facter-Graphite daemon
  MfG collects munin data and sends it to graphite.  Metric names are
  configurable through facts. It is written in python.
