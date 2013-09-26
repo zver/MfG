@@ -1,0 +1,6 @@
+if which update-python-modules >/dev/null 2>&1; then
+	update-python-modules  mfg.public
+fi
+if [ -x "/etc/init.d/mfg" ]; then
+	update-rc.d mfg defaults >/dev/null
+fi
