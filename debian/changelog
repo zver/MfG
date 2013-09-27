@@ -1,3 +1,9 @@
+mfg (1.0-1.1) unstable; urgency=low
+
+  * update depends
+
+ -- Denis Klimov <zver@altlinux.org>  Fri, 27 Sep 2013 18:01:38 +0600
+
 mfg (1.0-1) unstable; urgency=low
 
   * source package automatically created by stdeb 0.6.0
