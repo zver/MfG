@@ -1,3 +1,5 @@
+#!/bin/sh
+
 if which update-python-modules >/dev/null 2>&1; then
 	update-python-modules  mfg.public
 fi
