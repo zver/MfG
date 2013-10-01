@@ -13,19 +13,22 @@ from munin import MuninClient
 
 DEFAULT_CONFIG = {
 		'config_file': '/etc/mfg.ini',
+		'log_file': '/var/log/mfg.log',
 		'carbon_port': 2003,
 		'metric_prefix': '{hostname}.',
 		'interval': 60
 		}
+LOGGER = None
 
 def facter():
+    global LOGGER
     try:
         facter_output = subprocess.Popen(['facter','-py'], stdout=subprocess.PIPE, stderr=open("/dev/null", "w")).communicate()[0]
         y = yaml.load(facter_output)
-        logging.debug('Got facts: %s', y)
+        LOGGER.debug('Got facts: %s', y)
         return y
     except OSError, e:
-        logging.warning('Could not get facts: %s', e)
+        LOGGER.warning('Could not get facts: %s', e)
         return None
 
 def compute_prefix(facts, prefix_pattern):
@@ -45,7 +48,7 @@ def compute_prefix(facts, prefix_pattern):
         else:
             return prefix_pattern.format(hostname=socket.gethostname())
     except KeyError, e:
-        logging.error('not all facts in "%s" could be resolved: %s', prefix_pattern, e)
+        LOGGER.error('not all facts in "%s" could be resolved: %s', prefix_pattern, e)
         sys.exit(1)
 
 class CarbonClient(object):
@@ -72,6 +75,7 @@ def parse_config_file(config_file):
             ('carbon_host', 'carbon', 'host'),
             ('metric_prefix', 'mfg', 'prefix'),
             ('interval', 'mfg', 'interval'),
+            ('log_file', 'mfg', 'log_file'),
             )
 
     config = {}
@@ -94,6 +98,9 @@ def parse_command_line():
     parser = OptionParser()
     parser.add_option("-c", "--config", dest="config_file",
             help="use configuration in FILE, default: %s" % DEFAULT_CONFIG['config_file'], metavar="FILE")
+    parser.add_option("-l", "--log", dest="log_file",
+            help="use configuration in FILE, default: %s" % DEFAULT_CONFIG['log_file'], metavar="FILE",
+	    default=DEFAULT_CONFIG['log_file'])
     parser.add_option("-i", "--interval", dest="interval",
             help="send metrics every SECONDS, default: %s" % DEFAULT_CONFIG['interval'], metavar="SECONDS")
     parser.add_option("-H", "--carbon-host",
@@ -105,14 +112,12 @@ def parse_command_line():
     parser.add_option("-v", "--verbose", action="count", dest="verbose", help="be more verbose, may be used multiple times", default=0)
 
     (options, args) = parser.parse_args()
-    logging.getLogger().setLevel((logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG)[min(options.verbose, 3)])
-    logging.debug('command line options: %s', options)
     return dict((k,v) for k,v in options.__dict__.items() if v)
 
 def fetch_from_munin(munin_client):
-    logging.debug('going to ask munin for items')
+    LOGGER.debug('going to ask munin for items')
     list_result = munin_client.list()
-    logging.debug('munin: list command returned %d results', len(list_result))
+    LOGGER.debug('munin: list command returned %d results', len(list_result))
     timestamp = int(time.time())
     messages = []
     for item in list_result:
@@ -120,21 +125,24 @@ def fetch_from_munin(munin_client):
         try:
             for key in values:
                 message = "%s.%s %s %d\n" % (item, key, values[key], timestamp)
-                logging.debug('fetched from munin: %s', message)
+                LOGGER.debug('fetched from munin: %s', message)
                 messages.append(message)
         except:
-            logging.warning('no data for: %s', values)
+            LOGGER.warning('no data for: %s', values)
 
     return messages
 
 def send_to_carbon(carbon_client, prefix, messages):
     prefixed_messages = [prefix + message for message in messages]
     carbon_client.send("".join(prefixed_messages))
-    logging.info('sent %d messages', len(prefixed_messages))
+    LOGGER.info('sent %d messages', len(prefixed_messages))
 
 def main():
+    global LOGGER
     config_file = DEFAULT_CONFIG['config_file']
     command_line_config = parse_command_line()
+
+
     if 'config_file' in command_line_config:
         config_file = command_line_config['config_file']
 
@@ -143,9 +151,24 @@ def main():
     config = DEFAULT_CONFIG.copy()
     config.update(config_from_file)
     config.update(command_line_config)
-    logging.debug('merged config: %s', config)
+ 
+
+    level = (logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG)[command_line_config.get('verbose', 3)]
+    format = '%(asctime)s %(levelname)s %(name)s:%(lineno)d %(message)s'
+    logger = logging.getLogger("mfg")
+    logger.setLevel(level)
+    fh = logging.FileHandler(config['log_file'])
+    fh.setLevel(level)
+    formatter = logging.Formatter(format)
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+    LOGGER = logger
+
+    LOGGER.debug('command line options: %s', command_line_config)
+
+    LOGGER.debug('merged config: %s', config)
     if 'carbon_host' not in config:
-        logging.fatal('carbon_host not set, set in config file or use -H')
+        LOGGER.fatal('carbon_host not set, set in config file or use -H')
         raise RuntimeError()
 
     facts = facter()
@@ -172,10 +195,10 @@ def main():
             now = time.time()
             remaining_sleep = next_iteration - now
             if remaining_sleep > 0:
-                logging.debug('sleeping %d', remaining_sleep)
+                LOGGER.debug('sleeping %d', remaining_sleep)
                 time.sleep(remaining_sleep)
             else:
-                logging.warning('processing took %d seconds more than interval(%d), increase interval', -remaining_sleep, interval)
+                LOGGER.warning('processing took %d seconds more than interval(%d), increase interval', -remaining_sleep, interval)
 
         except socket.error, e:
             print e
@@ -186,6 +209,4 @@ def main():
             sys.exit(0)
 
 if __name__ == '__main__':
-    logging.root.name = 'mfg'
-    logging.basicConfig(level=logging.DEBUG)
     main()
