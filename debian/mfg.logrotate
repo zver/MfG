@@ -1,0 +1,13 @@
+/var/log/mfg.log {
+        rotate 4
+        daily
+        missingok
+        create 640 root adm
+        notifempty
+        compress
+        delaycompress
+        postrotate
+                invoke-rc.d mfg restart > /dev/null
+        endscript
+}
+
