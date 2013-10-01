@@ -3,6 +3,7 @@ import socket
 class MuninClient(object):
     def __init__(self, host, port=4949):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.settimeout(10.0)
         self.sock.connect((host, port))
         self.sock.recv(4096) # welcome, TODO: receive all
 
