@@ -1,3 +1,11 @@
+mfg (1.0-1.2) unstable; urgency=low
+
+  * add log to file
+  * add logrotate file
+  * setup timeout for socket
+
+ -- Denis Klimov <zver@altlinux.org>  Tue, 01 Oct 2013 22:38:01 +0600
+
 mfg (1.0-1.1) unstable; urgency=low
 
   * update depends
