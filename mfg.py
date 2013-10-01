@@ -153,7 +153,7 @@ def main():
     config.update(command_line_config)
  
 
-    level = (logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG)[command_line_config.get('verbose', 3)]
+    level = (logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG)[command_line_config.get('verbose', 0)]
     format = '%(asctime)s %(levelname)s %(name)s:%(lineno)d %(message)s'
     logger = logging.getLogger("mfg")
     logger.setLevel(level)
