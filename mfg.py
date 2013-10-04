@@ -100,7 +100,7 @@ def parse_command_line():
             help="use configuration in FILE, default: %s" % DEFAULT_CONFIG['config_file'], metavar="FILE")
     parser.add_option("-l", "--log", dest="log_file",
             help="use configuration in FILE, default: %s" % DEFAULT_CONFIG['log_file'], metavar="FILE",
-	    default=DEFAULT_CONFIG['log_file'])
+            default=DEFAULT_CONFIG['log_file'])
     parser.add_option("-i", "--interval", dest="interval",
             help="send metrics every SECONDS, default: %s" % DEFAULT_CONFIG['interval'], metavar="SECONDS")
     parser.add_option("-H", "--carbon-host",
@@ -118,18 +118,21 @@ def fetch_from_munin(munin_client):
     LOGGER.debug('going to ask munin for items')
     list_result = munin_client.list()
     LOGGER.debug('munin: list command returned %d results', len(list_result))
-    timestamp = int(time.time())
     messages = []
     for item in list_result:
         values = munin_client.fetch(item)
         try:
             for key in values:
-                message = "%s.%s %s %d\n" % (item, key, values[key], timestamp)
+                timestamp = int(time.time())
+                if '.' in key: # It is from multigraph ?
+                    graphite_path = key
+                else:
+                    graphite_path = "%s.%s" % (item, key)
+                message = "%s %s %d\n" % (graphite_path, values[key], timestamp)
                 LOGGER.debug('fetched from munin: %s', message)
                 messages.append(message)
         except:
             LOGGER.warning('no data for: %s', values)
-
     return messages
 
 def send_to_carbon(carbon_client, prefix, messages):

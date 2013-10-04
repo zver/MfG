@@ -18,20 +18,26 @@ class MuninClient(object):
         return buf.split(term)[0]
 
     def list(self):
+        self._command('cap multigraph', '\n')
         return self._command('list', '\n').split(' ')
+
 
     def fetch(self, service):
         data = self._command("fetch %s" % service, ".\n")
-        if data.startswith('#'):
-            values = False
-        else:
-            values = {}
-        if values != False:
-            for line in data.split('\n'):
-                    if line:
-                        k, v = line.split(' ', 1)
-                        values[k.split('.')[0]] = v.rstrip()
+        values = {}
+        graph_name = ''
+        for line in data.split('\n'):
+            if line and not line.startswith('#'):
+                if line.startswith('multigraph'):
+                    graph_name = line.split(' ')[1]
+                if '.value ' in line:
+                    k, v = line.split(' ', 1)
+                    k = k.split('.')[0]
+                    if graph_name:
+                        k = "%s.%s" % (graph_name, k)
+                    values[k] = v.rstrip()
         return values
+
 
     def close(self):
         self.sock.close()
