@@ -61,8 +61,8 @@ class CarbonClient(object):
     def _init_socket(self):
         try:
             self.sock = socket.socket()
+            self.sock.settimeout(2)
             self.sock.connect((self.host, self.port))
-            self.sock.setblocking(0)
         except IOError, e:
             raise e.__class__(e.errno, "%s:%s: %s" % (self.host, self.port, e.strerror))
 
