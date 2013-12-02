@@ -5,6 +5,7 @@ class MuninClient(object):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.settimeout(10.0)
         self.sock.connect((host, port))
+        self.sock.setblocking(0)
         self.sock.recv(4096) # welcome, TODO: receive all
 
     def _command(self, cmd, term):
