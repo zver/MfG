@@ -1,4 +1,5 @@
 import socket
+import sys
 
 class MuninClient(object):
     def __init__(self, host, port=4949):
@@ -15,12 +16,12 @@ class MuninClient(object):
                 buf += self.sock.recv(4096)
             except Exception, e:
                 print "Error:", e
+                sys.exit(1)
         return buf.split(term)[0]
 
     def list(self):
         self._command('cap multigraph', '\n')
         return self._command('list', '\n').split(' ')
-
 
     def fetch(self, service):
         data = self._command("fetch %s" % service, ".\n")
@@ -37,7 +38,6 @@ class MuninClient(object):
                         k = "%s.%s" % (graph_name, k)
                     values[k] = v.rstrip()
         return values
-
 
     def close(self):
         self.sock.close()

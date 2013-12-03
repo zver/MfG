@@ -52,7 +52,6 @@ def compute_prefix(facts, prefix_pattern):
         sys.exit(1)
 
 class CarbonClient(object):
-
     def __init__(self, host, port):
         self.host = host
         self.port = int(port)
@@ -69,6 +68,8 @@ class CarbonClient(object):
     def send(self, message):
         self.sock.sendall(message)
 
+    def close(self):
+        self.sock.close()
 
 def parse_config_file(config_file):
     config_file_structure = (
@@ -180,21 +181,23 @@ def main():
     prefix = compute_prefix(facts, config['metric_prefix'])
     if not prefix.endswith('.'):
         prefix = prefix + '.'
-    try:
-        carbon_client = CarbonClient(config['carbon_host'], config['carbon_port'])
-    except socket.error, e:
-        print e
-        sys.exit(1)
 
-    munin_client = MuninClient('127.0.0.1')
     while True:
+        munin_client = MuninClient('127.0.0.1')
         try:
-            munin_client = MuninClient('127.0.0.1')
             started = time.time()
             next_iteration = started + int(config['interval'])
 
             messages = fetch_from_munin(munin_client)
+
+            try:
+                carbon_client = CarbonClient(config['carbon_host'], config['carbon_port'])
+            except socket.error, e:
+                print e
+                sys.exit(1)
+
             send_to_carbon(carbon_client, prefix, messages)
+            carbon_client.close()
 
             now = time.time()
             remaining_sleep = next_iteration - now
@@ -211,6 +214,7 @@ def main():
         except KeyboardInterrupt:
             munin_client.close()
             sys.exit(0)
+        munin_client.close()
 
 if __name__ == '__main__':
     main()
